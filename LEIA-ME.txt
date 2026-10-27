@@ -4,9 +4,8 @@ PROJETO DE COMPUTAÇÃO GRÁFICA - MODELO 3D DO PRÉDIO C3 (FURG)
 INTEGRANTES
 -----------
 Matrícula      Nome
-[MATRÍCULA]    Matheus Nunes Büttow
-[MATRÍCULA]    [NOME]
-[MATRÍCULA]    [NOME]
+164400         Matheus Nunes Büttow
+162589         Luis Henrique K. Reichow
 
 
 RESUMO DA PROPOSTA
