@@ -13,7 +13,7 @@ int   ortogonal  = 0;     /* P troca entre perspectiva e ortogonal */
 float aspecto    = 800.0f / 600;
 int   mouseX, mouseY;     /* última posição do mouse durante o arrasto */
 int   botaoMouse;         /* botão que está arrastando */
-float droneX = 0, droneZ = -10;   /* posição do drone no mini mundo (setas ou botão direito) */
+float droneX = -7.7f, droneZ = 18.3f;   /* drone no mini mundo, começa em cima do estacionamento (setas ou botão direito) */
 int   largura = 800, altura = 600;
 
 /*
