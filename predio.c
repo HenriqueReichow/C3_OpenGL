@@ -58,6 +58,8 @@
 /* Miolo triangular (mesmo centro do átrio, com a face reta virada para a frente) */
 #define TRI_RAIO     16.7
 #define TRI_ALT      8
+#define PORTA_FUNDOS 0.7       /* na face de trás do miolo do lado da ala esquerda: meio do pedaço
+                                  que aparece entre o bloco central e a ala (de -2.5 a 3.9) */
 
 /* Ala esquerda */
 #define ESQ_X       -9.2
@@ -91,6 +93,11 @@
 
 #define VIDRO_L  0.9
 #define JANELA_A 1.6
+
+/* Condensadora do ar-condicionado */
+#define AR_L     0.8
+#define AR_A     0.55
+#define AR_P     0.3
 
 #define BRANCO   glColor3f(0.85f, 0.85f, 0.82f)
 #define TELHA    glColor3f(0.82f, 0.86f, 0.9f)
@@ -145,6 +152,41 @@ static void porta(float x, float z) {
     retangulo(x, 0, x + VIDRO_L - 0.04f, 2.6f, z + 0.06f);            /* vidro */
 }
 
+/* Porta de duas folhas com centro em x e marquise em cima. Cobre a janela do térreo atrás dela. */
+static void portaDupla(float x, float z) {
+    glColor3f(0.93f, 0.93f, 0.9f);
+    retangulo(x - 1.05f, 0, x + 1.05f, 2.75f, z + 0.05f);      /* moldura */
+    glColor3f(0.12f, 0.22f, 0.2f);
+    retangulo(x - 0.95f, 0, x - 0.03f, 2.65f, z + 0.06f);      /* folhas */
+    retangulo(x + 0.03f, 0, x + 0.95f, 2.65f, z + 0.06f);
+    glColor3f(0.75f, 0.75f, 0.72f);
+    caixa(x - 0.12f, 1.1f, z + 0.08f, 0.04f, 0.4f, 0.04f);     /* puxadores */
+    caixa(x + 0.12f, 1.1f, z + 0.08f, 0.04f, 0.4f, 0.04f);
+    BRANCO;
+    caixa(x, 3.0f, z + 0.6f, 2.8f, 0.15f, 1.2f);               /* marquise */
+}
+
+/*
+ * Condensadora de ar-condicionado presa na parede (face em z, virada para +Z),
+ * centro em (x, y): gabinete, ventilador e dois suportes embaixo.
+ */
+static void arCondicionado(float x, float y, float z) {
+    glColor3f(0.95f, 0.95f, 0.93f);
+    caixa(x, y, z + AR_P / 2, AR_L, AR_A, AR_P);              /* gabinete */
+
+    glColor3f(0.3f, 0.3f, 0.3f);
+    glPushMatrix();                                            /* ventilador: prisma achatado virado pra frente */
+        translada(x + AR_L * 0.12f, y, z + AR_P);
+        rotacionaX(90);
+        escala(AR_A * 0.38f, 0.01f, AR_A * 0.38f);
+        prisma(16);
+    glPopMatrix();
+
+    glColor3f(0.6f, 0.6f, 0.6f);                               /* suportes */
+    caixa(x - AR_L * 0.35f, y - AR_A / 2 - 0.03f, z + AR_P / 2, 0.04f, 0.06f, AR_P);
+    caixa(x + AR_L * 0.35f, y - AR_A / 2 - 0.03f, z + AR_P / 2, 0.04f, 0.06f, AR_P);
+}
+
 /*
  * Tijolo e janelas de um lado de um bloco (já posicionado e girado).
  * giro escolhe o lado (0 = +Z, 180 = -Z, 90 = +X, -90 = -X); depois de girar,
@@ -197,11 +239,12 @@ static void fachada(float giro, float dist, float largura, float altura, int tij
 }
 
 /* Parede de (x1, z1) até (x2, z2) com n janelas de 1 vidro por andar.
-   ladoJanelas: +1 janelas em +Z, -1 em -Z, 0 nenhuma. */
-static void parede(float x1, float z1, float x2, float z2, float altura, int ladoJanelas, int n) {
+   ladoJanelas: +1 janelas em +Z, -1 em -Z, 0 nenhuma.
+   ar: põe um ar-condicionado do lado de uma janela sim, outra não. */
+static void parede(float x1, float z1, float x2, float z2, float altura, int ladoJanelas, int n, int ar) {
     float dx = x2 - x1, dz = z2 - z1;
-    float y;
-    int i;
+    float x, y;
+    int i, andar;
     float comprimento = sqrt(dx * dx + dz * dz);
     float angulo = atan2(-dz, dx) * 180 / 3.14159265f;
 
@@ -212,9 +255,13 @@ static void parede(float x1, float z1, float x2, float z2, float altura, int lad
         caixa(0, altura / 2, 0, comprimento + ESPESSURA, altura, ESPESSURA);   /* + ESPESSURA fecha a quina */
         if (ladoJanelas != 0) {
             rotacionaY(ladoJanelas > 0 ? 0 : 180);
-            for (y = 1.0f; y + JANELA_A < altura - PLATIBANDA; y += ANDAR)
-                for (i = 0; i < n; i++)          /* espaçadas igualmente ao longo da parede */
-                    janela((i + 0.5f - n / 2.0f) * comprimento / n, y, ESPESSURA / 2, 1);
+            for (y = 1.0f, andar = 0; y + JANELA_A < altura - PLATIBANDA; y += ANDAR, andar++)
+                for (i = 0; i < n; i++) {        /* espaçadas igualmente ao longo da parede */
+                    x = (i + 0.5f - n / 2.0f) * comprimento / n;
+                    janela(x, y, ESPESSURA / 2, 1);
+                    if (ar && (i + andar) % 2 == 0)
+                        arCondicionado(x + 1.0f, y + 0.5f, ESPESSURA / 2);
+                }
         }
     glPopMatrix();
 }
@@ -302,14 +349,14 @@ static void contornoFundo(float o, float *xj, float *zj, float *xp, float *zp) {
 }
 
 /* Parede ao longo da barra inteira: trecho esquerdo, reto e direito */
-static void paredeFundo(float o, float altura, int ladoJanelas) {
+static void paredeFundo(float o, float altura, int ladoJanelas, int ar) {
     float xj, zj, xp, zp;
     contornoFundo(o, &xj, &zj, &xp, &zp);
-    parede(xp, zp, xj, zj, altura, ladoJanelas, 4);      /* trecho dobrado: 4 janelas */
-    parede(xj, zj, -xj, zj, altura, 0, 0);               /* trecho reto */
-    parede(xj, zj, -CENTRAL_LARG / 2, zj, altura, ladoJanelas, 5);   /* 5 janelas de cada lado do bloco central */
-    parede(CENTRAL_LARG / 2, zj, -xj, zj, altura, ladoJanelas, 5);
-    parede(-xj, zj, -xp, zp, altura, ladoJanelas, 4);
+    parede(xp, zp, xj, zj, altura, ladoJanelas, 4, ar);      /* trecho dobrado: 4 janelas */
+    parede(xj, zj, -xj, zj, altura, 0, 0, 0);                /* trecho reto */
+    parede(xj, zj, -CENTRAL_LARG / 2, zj, altura, ladoJanelas, 5, ar);   /* 5 janelas de cada lado do bloco central */
+    parede(CENTRAL_LARG / 2, zj, -xj, zj, altura, ladoJanelas, 5, ar);
+    parede(-xj, zj, -xp, zp, altura, ladoJanelas, 4, ar);
 }
 
 /* Faixa de telhado entre as linhas oA (altura yA) e oB (altura yB), nos 3 trechos */
@@ -380,8 +427,8 @@ static void desenhaFundo(void) {
     float vao, xt;
     float a = FUNDO_ANG * 3.14159265f / 180;
 
-    paredeFundo(0,    FUNDO_ALT, -1);       /* trás */
-    paredeFundo(meio, FUNDO_ALT,  0);       /* desnível */
+    paredeFundo(0,    FUNDO_ALT, -1, 0);    /* trás */
+    paredeFundo(meio, FUNDO_ALT,  0, 0);    /* desnível */
 
     /* tijolo dos dois lados do bloco central: pega as 3 janelas mais perto dele
        (vao = espaço de cada uma das 5 janelas do trecho reto) */
@@ -396,16 +443,16 @@ static void desenhaFundo(void) {
         translada(xt, 0, FUNDO_Z + FUNDO_LARG);
         fachada(0, ESPESSURA / 2, 3 * vao, FUNDO_FRONT_ALT, 1, SEM);
     glPopMatrix();
-    paredeFundo(FUNDO_LARG, FUNDO_FRONT_ALT, 1);   /* frente */
+    paredeFundo(FUNDO_LARG, FUNDO_FRONT_ALT, 1, 1);   /* frente, com ar-condicionados */
 
     /* paredes das pontas */
     contornoFundo(0,          &xj, &zj, &xp0, &zp0);
     contornoFundo(meio,       &xj, &zj, &xpm, &zpm);
     contornoFundo(FUNDO_LARG, &xj, &zj, &xpf, &zpf);
-    parede(xp0,  zp0, xpm,  zpm, FUNDO_ALT,       0, 0);
-    parede(xpm,  zpm, xpf,  zpf, FUNDO_FRONT_ALT, 0, 0);
-    parede(-xp0, zp0, -xpm, zpm, FUNDO_ALT,       0, 0);
-    parede(-xpm, zpm, -xpf, zpf, FUNDO_FRONT_ALT, 0, 0);
+    parede(xp0,  zp0, xpm,  zpm, FUNDO_ALT,       0, 0, 0);
+    parede(xpm,  zpm, xpf,  zpf, FUNDO_FRONT_ALT, 0, 0, 0);
+    parede(-xp0, zp0, -xpm, zpm, FUNDO_ALT,       0, 0, 0);
+    parede(-xpm, zpm, -xpf, zpf, FUNDO_FRONT_ALT, 0, 0, 0);
 
     telhadoFundo(0,    meio,       FUNDO_ALT - PLATIBANDA);
     telhadoFundo(meio, FUNDO_LARG, FUNDO_FRONT_ALT - PLATIBANDA);
@@ -439,6 +486,95 @@ static void arvore(float x, float z, float altura) {
     glPopMatrix();
 }
 
+/* Carro de 4 m apontando para +X: carroceria, cabine de vidro com teto e 4 rodas */
+static void carro(float x, float z, float angulo, float r, float g, float b) {
+    int i, j;
+
+    glPushMatrix();
+        translada(x, 0, z);
+        rotacionaY(angulo);
+        glColor3f(r, g, b);
+        caixa(0, 0.6f, 0, 4.0f, 0.55f, 1.7f);              /* carroceria */
+        caixa(-0.2f, 1.36f, 0, 1.9f, 0.08f, 1.45f);         /* teto */
+        glColor3f(0.15f, 0.2f, 0.25f);
+        caixa(-0.2f, 1.1f, 0, 2.2f, 0.45f, 1.5f);           /* vidros */
+
+        glColor3f(0.1f, 0.1f, 0.1f);
+        for (i = -1; i <= 1; i += 2)
+            for (j = -1; j <= 1; j += 2) {
+                glPushMatrix();                             /* roda: prisma deitado */
+                    translada(i * 1.3f, 0.33f, j * 0.75f);
+                    rotacionaX(90);
+                    escala(0.33f, 0.22f, 0.33f);
+                    translada(0, -0.5f, 0);
+                    prisma(12);
+                glPopMatrix();
+            }
+    glPopMatrix();
+}
+
+/* Poste de luz: haste (prisma de 8 lados) e luminária virada para +X */
+static void poste(float x, float z, float altura) {
+    glColor3f(0.55f, 0.55f, 0.55f);
+    glPushMatrix();
+        translada(x, 0, z);
+        escala(0.08f, altura, 0.08f);
+        prisma(8);
+    glPopMatrix();
+    glColor3f(0.92f, 0.92f, 0.88f);
+    caixa(x + 0.3f, altura, z, 0.7f, 0.12f, 0.3f);
+}
+
+/* Disco achatado (prisma de 24 lados) com centro em (x, z) */
+static void disco(float x, float y, float z, float raio, float alt) {
+    glPushMatrix();
+        translada(x, y, z);
+        escala(raio, alt, raio);
+        prisma(24);
+    glPopMatrix();
+}
+
+/*
+ * Chão da frente, como na foto. Feito no sistema da ala esquerda:
+ * X ao longo da fachada, a parede fica em z = ESQ_LARG / 2 e +Z é pra fora.
+ * A porta da entrada (ala direita) cai perto de (8.5, 8.3).
+ *   calçada        paralela à ala, com uma faixa de grama entre ela e a parede
+ *   retorno        U em volta da ilha de grama, saindo da calçada perto da entrada
+ *   estacionamento só o pedaço na frente da ala, à esquerda da ilha
+ * Cada camada fica um pouco mais alta que a de baixo pra não brigar no Z-buffer.
+ */
+static void frente(void) {
+    glPushMatrix();
+        translada(ESQ_X, 0, ESQ_Z);
+        rotacionaY(ESQ_ANG);
+
+        glColor3f(0.7f, 0.7f, 0.67f);                       /* calçada e retorno */
+        caixa(-6.5f, 0.01f, 8.75f, 31, 0.02f, 2.5f);
+        caixa(2.75f, 0.01f, 14, 6.5f, 0.02f, 8);
+        disco(6, 0, 14, 4, 0.02f);
+
+        glColor3f(0.42f, 0.42f, 0.42f);                     /* estacionamento */
+        caixa(-7.25f, 0.015f, 15.6f, 13.5f, 0.03f, 10.8f);
+        glColor3f(0.9f, 0.9f, 0.88f);                       /* faixas das vagas */
+        caixa(-7.25f, 0.035f, 15.6f, 0.12f, 0.01f, 9);
+
+        glColor3f(0.8f, 0.8f, 0.77f);                       /* meio-fio da ilha */
+        caixa(2.925f, 0.075f, 14, 6.15f, 0.15f, 3.9f);
+        disco(6, 0, 14, 1.95f, 0.15f);
+        glColor3f(0.35f, 0.55f, 0.25f);                     /* grama da ilha */
+        caixa(3, 0.08f, 14, 6, 0.16f, 3.6f);
+        disco(6, 0, 14, 1.8f, 0.16f);
+
+        poste(4, 14, 5);
+        poste(-21, 10.3f, 5);
+
+        carro(-3,    12.5f, 0,  0.85f, 0.85f, 0.82f);      /* branco, encostado na ilha */
+        carro(-3,    19,    0,  0.75f, 0.08f, 0.1f);        /* vermelho */
+        carro(-10.5f, 13,   0,  0.6f,  0.62f, 0.65f);       /* prata */
+        carro(-10.5f, 18.5f, 0, 0.15f, 0.25f, 0.5f);        /* azul */
+    glPopMatrix();
+}
+
 static void entorno(void) {
     float arvores[][3] = {                      /* x, z, altura */
         { 30,  2, 7}, { 36, 10, 8}, { 27, 18, 6}, { 42, -6, 9}, { 46,  6, 7},
@@ -446,13 +582,15 @@ static void entorno(void) {
     };
     int i;
 
-    glColor3f(0.6f, 0.6f, 0.58f);
-    caixa(-18, 0.01f, 22.5f, 26, 0.02f, 8);     /* estacionamento */
-    caixa(-1, 0.01f, 13, 2.5f, 0.02f, 18);      /* caminho até a entrada */
+    frente();
 
-    glPushMatrix();                             /* rotatória: prisma de 24 lados bem achatado */
-        translada(-15, 0.02f, -15);
-        escala(4, 0.02f, 4);
+    glColor3f(0.6f, 0.6f, 0.58f);
+
+    glPushMatrix();                             /* círculo na frente da porta dos fundos: prisma de 24 lados bem achatado */
+        translada(ATRIO_X, 0.02f, ATRIO_Z);     /* a metade de trás fica embaixo do prédio */
+        rotacionaY(-120);
+        translada(PORTA_FUNDOS, 0, TRI_RAIO / 2);
+        escala(4.5f, 0.02f, 4.5f);
         prisma(24);
     glPopMatrix();
 
@@ -465,7 +603,11 @@ static void entorno(void) {
 /* ---------- prédio inteiro ---------- */
 
 void desenhaPredio(void) {
-    int i, j;
+    float arPonta[7][2] = {                     /* x, y na ponta da ala direita */
+        {-4.5f, 3.4f}, {-2.0f, 3.1f}, {0.8f, 3.4f}, {3.6f, 3.2f},
+        {-3.3f, 6.2f}, {-0.5f, 6.4f}, {2.4f, 6.2f}
+    };
+    int i;
 
     /* átrio: prisma de 6 lados */
     BRANCO;
@@ -516,6 +658,10 @@ void desenhaPredio(void) {
         /* tijolo nas duas faces de trás do miolo (aparecem entre o bloco central e as alas) */
         fachada( 120, TRI_RAIO / 2, TRI_RAIO * 1.732f, TRI_ALT - PLATIBANDA, 1, SEM);
         fachada(-120, TRI_RAIO / 2, TRI_RAIO * 1.732f, TRI_ALT - PLATIBANDA, 1, SEM);
+        glPushMatrix();                                     /* porta dos fundos, de frente pro círculo */
+            rotacionaY(-120);
+            portaDupla(PORTA_FUNDOS, TRI_RAIO / 2);
+        glPopMatrix();
     glPopMatrix();
 
     /* painéis de telhado em volta da claraboia: tronco de 6 lados */
@@ -544,18 +690,26 @@ void desenhaPredio(void) {
         fachada(-90, ESQ_COMP / 2, ESQ_LARG, ESQ_ALT, 1, FITA);      /* ponta */
         fachada(180, ESQ_LARG / 2, ESQ_COMP, ESQ_ALT, 1, SIMPLES);   /* trás */
         fachada(0,   ESQ_LARG / 2, ESQ_COMP, ESQ_ALT, 1, FITA);      /* lado da entrada */
+
+        /* ar-condicionados como na foto: entre os andares e rente ao chão */
+        arCondicionado(-3.5f, 3.45f, ESQ_LARG / 2);
+        arCondicionado( 2.8f, 0.4f,  ESQ_LARG / 2);
+        arCondicionado( 4.2f, 0.4f,  ESQ_LARG / 2);
+        glPushMatrix();
+            rotacionaY(-90);                                       /* ponta */
+            arCondicionado(-2.0f, 3.45f, ESQ_COMP / 2);
+            arCondicionado( 2.5f, 0.4f,  ESQ_COMP / 2);
+        glPopMatrix();
     glPopMatrix();
 
     glPushMatrix();                                         /* ala direita */
         translada(DIR_X, 0, DIR_Z);
         rotacionaY(DIR_ANG);
         fachada(90, DIR_COMP / 2, DIR_LARG, DIR_FRONT_ALT, 1, SEM);   /* ponta, tijolo */
-        glPushMatrix();                                     /* ar-condicionados na ponta */
+        glPushMatrix();                                     /* ar-condicionados na ponta, desencontrados como na foto */
             rotacionaY(90);
-            glColor3f(0.95f, 0.95f, 0.95f);
-            for (j = 0; j < 2; j++)
-                for (i = -2; i <= 1; i++)
-                    caixa(i * 2.5f + 1.25f, 2.8f + j * ANDAR, DIR_COMP / 2 + 0.2f, 0.8f, 0.6f, 0.4f);
+            for (i = 0; i < 7; i++)
+                arCondicionado(arPonta[i][0], arPonta[i][1], DIR_COMP / 2);
         glPopMatrix();
         fachada(0, DIR_LARG / 2, DIR_COMP, DIR_FRONT_ALT, 0, PILARES);   /* lado da entrada */
         porta(-(4 * VIDRO_L + 0.6f) - 2 * VIDRO_L, DIR_LARG / 2);       /* no 1º vidro do vão perto do átrio */

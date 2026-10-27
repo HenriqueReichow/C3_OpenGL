@@ -1,0 +1,66 @@
+PROJETO DE COMPUTAÇÃO GRÁFICA - MODELO 3D DO PRÉDIO C3 (FURG)
+==============================================================
+
+INTEGRANTES
+-----------
+Matrícula      Nome
+[MATRÍCULA]    Matheus Nunes Büttow
+[MATRÍCULA]    [NOME]
+[MATRÍCULA]    [NOME]
+
+
+RESUMO DA PROPOSTA
+------------------
+O projeto reproduz em 3D o prédio C3 do campus Carreiros da FURG, usando
+OpenGL com GLUT em C (ANSI). As medidas foram tiradas de uma foto aérea
+(c3.webp) e do Google Earth, na escala de 1 unidade = 1 metro.
+
+O modelo tem o átrio hexagonal com a claraboia de vidro, o miolo triangular,
+o bloco central, as alas esquerda e direita, a barra do fundo com os trechos
+dobrados e os anexos com varandas. As fachadas têm tijolo, janelas, portas e
+condensadoras de ar-condicionado nas posições da foto. Em volta do prédio
+estão a calçada, o retorno com a ilha de grama, o estacionamento com carros,
+postes, o círculo nos fundos e árvores.
+
+Conteúdos de Computação Gráfica usados:
+  - transformações geométricas (translação, escala e rotação) e projeções
+    perspectiva e ortogonal montadas à mão em matrizes 4x4 (matrizes.c),
+    sem usar glTranslate, glRotate, glScale, gluPerspective ou glOrtho;
+  - modelagem por primitivas: cubo, prisma, pirâmide, tronco de pirâmide e
+    telhado de duas águas (formas.c), combinadas em hierarquia com a pilha
+    de matrizes (glPushMatrix / glPopMatrix);
+  - rasterização de linhas pelo algoritmo DDA (estrutura da claraboia);
+  - visibilidade por Z-buffer;
+  - iluminação de Phong (ambiente + difusa + especular) com sombreamento
+    de Gouraud;
+  - modo "mini mundo" (pequeno planeta, como nos drones): a cena é
+    renderizada nas 6 faces de um cubo e remapeada pixel a pixel por uma
+    projeção estereográfica.
+
+
+ARQUIVOS
+--------
+main.c       janela, câmera, controles e o modo mini mundo
+matrizes.c   matrizes de transformação e de projeção
+formas.c     primitivas geométricas, chão e linha DDA
+predio.c     o prédio e o entorno
+c3.webp      foto aérea usada como referência
+Makefile     compilação
+
+
+COMO COMPILAR E EXECUTAR (Linux)
+--------------------------------
+Dependência: freeglut (sudo apt install build-essential freeglut3-dev)
+
+    make
+    ./main
+
+
+CONTROLES
+---------
+Arrastar (botão esquerdo) ou A / D, W / S   gira e inclina a câmera
+Rodinha do mouse ou + / -                   aproxima e afasta
+P                                           perspectiva / ortogonal
+M                                           liga e desliga o mini mundo
+Setas ou arrastar (botão direito)           anda com o drone no mini mundo
+Esc                                         sai

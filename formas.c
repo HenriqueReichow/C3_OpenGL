@@ -135,7 +135,7 @@ void telhado(void) {
 
 /* Gramado de 200 x 200 m */
 void chao(void) {
-    float t = 100;
+    float t = 600;      /* grande pra chegar até o horizonte no mini mundo */
     glColor3f(0.3f, 0.6f, 0.25f);
     glBegin(GL_QUADS);
         glNormal3f(0, 1, 0);
