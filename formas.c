@@ -145,24 +145,31 @@ void chao(void) {
 }
 
 /*
- * DDA no chão. Os "pixels" são uma grade de 10 cm.
- * O número de passos é o maior entre |dx| e |dz|; a cada passo soma o
- * incremento em x e z e arredonda para a célula mais próxima.
+ * DDA em 3D. Os "pixels" são uma grade de 2 cm.
+ * O número de passos é o maior entre |dx|, |dy| e |dz|; a cada passo soma o
+ * incremento em cada eixo e arredonda para a célula mais próxima.
  */
-void linhaDDA(float x0, float z0, float x1, float z1) {
-    float grade = 10;                   /* células por metro */
+void linhaDDA(float x0, float y0, float z0, float x1, float y1, float z1) {
+    float grade = 50;                   /* células por metro */
     float dx = (x1 - x0) * grade;
+    float dy = (y1 - y0) * grade;
     float dz = (z1 - z0) * grade;
-    int passos = (int)(fabs(dx) > fabs(dz) ? fabs(dx) : fabs(dz));
-    float incX = dx / passos, incZ = dz / passos;
-    float x = x0 * grade, z = z0 * grade;
-    int i;
+    float maior = fabs(dx);
+    int passos, i;
+    float incX, incY, incZ;
+    float x = x0 * grade, y = y0 * grade, z = z0 * grade;
+
+    if (fabs(dy) > maior) maior = fabs(dy);
+    if (fabs(dz) > maior) maior = fabs(dz);
+    passos = (int)maior;
+    incX = dx / passos;  incY = dy / passos;  incZ = dz / passos;
 
     glBegin(GL_POINTS);
         glNormal3f(0, 1, 0);
         for (i = 0; i <= passos; i++) {
-            glVertex3f(floor(x + 0.5f) / grade, 0.05f, floor(z + 0.5f) / grade);
+            glVertex3f(floor(x + 0.5f) / grade, floor(y + 0.5f) / grade, floor(z + 0.5f) / grade);
             x += incX;
+            y += incY;
             z += incZ;
         }
     glEnd();

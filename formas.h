@@ -7,6 +7,6 @@ void piramide(int lados);               /* pirâmide de raio 1, base em y = 0 e 
 void tronco(int lados, float raioTopo); /* pirâmide sem a ponta (só as faces inclinadas) */
 void telhado(void);                     /* telhado de duas águas 1 x 1, cumeeira em y = 1 */
 void chao(void);                        /* gramado em y = 0 */
-void linhaDDA(float x0, float z0, float x1, float z1);   /* linha no chão pelo DDA */
+void linhaDDA(float x0, float y0, float z0, float x1, float y1, float z1);   /* linha pelo DDA */
 
 #endif

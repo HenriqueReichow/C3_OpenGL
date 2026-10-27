@@ -9,7 +9,8 @@
  * X para a direita, Y para cima, Z para a frente. O átrio fica perto da origem.
  *
  * Partes:
- *   átrio         prisma de 6 lados, com a claraboia (pirâmide) em cima
+ *   átrio         prisma de 6 lados, com a claraboia (pirâmide) em cima;
+ *                 a estrutura da claraboia é desenhada com o algoritmo DDA
  *   miolo         prisma de 3 lados que preenche o espaço entre o átrio e as alas
  *   painéis       tronco de pirâmide de 6 lados, o telhado em volta da claraboia
  *   bloco central caixa atrás do átrio, até a barra do fundo
@@ -443,7 +444,6 @@ static void entorno(void) {
         { 30,  2, 7}, { 36, 10, 8}, { 27, 18, 6}, { 42, -6, 9}, { 46,  6, 7},
         { 38, 24, 8}, { 22, 28, 7}, {-42, 10, 6}, {-44, -8, 8}, { 48, -24, 9}
     };
-    float xv;
     int i;
 
     glColor3f(0.6f, 0.6f, 0.58f);
@@ -459,12 +459,6 @@ static void entorno(void) {
     for (i = 0; i < 10; i++)
         arvore(arvores[i][0], arvores[i][1], arvores[i][2]);
 
-    /* vagas do estacionamento com DDA */
-    glColor3f(1, 1, 1);
-    glPointSize(2);
-    linhaDDA(-30, 20, -6, 20);
-    for (xv = -30; xv <= -6; xv += 2.5f)
-        linhaDDA(xv, 20, xv + 1.5f, 25);
 }
 
 
@@ -481,17 +475,26 @@ void desenhaPredio(void) {
         prisma(6);
     glPopMatrix();
 
-    /* claraboia: pirâmide de vidro + a mesma pirâmide só com as arestas (estrutura) */
+    /* claraboia: pirâmide de vidro */
     glPushMatrix();
         translada(ATRIO_X, ATRIO_ALT, ATRIO_Z);
-        escala(ATRIO_RAIO, CLARABOIA_ALT, ATRIO_RAIO);
-        glColor3f(0.55f, 0.75f, 0.85f);
-        piramide(6);
+        glPushMatrix();
+            escala(ATRIO_RAIO, CLARABOIA_ALT, ATRIO_RAIO);
+            glColor3f(0.55f, 0.75f, 0.85f);
+            piramide(6);
+        glPopMatrix();
+
+        /* estrutura metálica da claraboia com DDA: base do hexágono e as 6 arestas até a ponta.
+           Sobe 2 cm para os pontos não sumirem dentro do vidro. */
         glColor3f(0.3f, 0.3f, 0.3f);
-        glLineWidth(2);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        piramide(6);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glPointSize(3);
+        for (i = 0; i < 6; i++) {
+            float a1 = i * 3.14159265f / 3, a2 = (i + 1) * 3.14159265f / 3;
+            float x1 = ATRIO_RAIO * cos(a1), z1 = ATRIO_RAIO * sin(a1);
+            float x2 = ATRIO_RAIO * cos(a2), z2 = ATRIO_RAIO * sin(a2);
+            linhaDDA(x1, 0.02f, z1, x2, 0.02f, z2);
+            linhaDDA(x1, 0.02f, z1, 0, CLARABOIA_ALT + 0.02f, 0);
+        }
     glPopMatrix();
 
     /* miolo: prisma de 3 lados até a laje; só a face da frente aparece (entre as alas) */
